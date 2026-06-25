@@ -175,7 +175,7 @@
         </div>
 
         <div class="grid-despensa" id="grid-inventario">
-            <p id="despensa-vacia" style="grid-column: 1 / -1; text-align: center; color: var(--texto-gris); font-weight: 600; padding: 40px 0;">Escanea tu primer producto para comenzar</p>
+            <p id="despensa-vacia" style="grid-column: 1 / -1; text-align: center; color: var(--texto-gris); font-weight: 600; padding: 40px 0;">Escanea tu primer producto para comenzar 📷</p>
         </div>
     </div>
 
@@ -290,9 +290,9 @@
 </div>
 
 <script>
-    // ── CONFIGURACIÓN DE TU DIRECCIÓN IP LOCAL ─────────────────────────────────────────
-    // Tu iPhone se conectará a esta IP para enviar las fotos a la API en tu MacBook.
-    const API_URL ='https://mocha-deceased-renewably.ngrok-free.dev/predict';
+    // ── CONFIGURACIÓN DE TU ENLACE NGROK EN VIVO ───────────────────────────────────────
+    // Tu iPhone enviará las capturas de cámara a este túnel seguro que apunta a tu Mac.
+    const API_URL = 'https://mocha-deceased-renewably.ngrok-free.dev/predict';
 
     // --- Catálogo de productos YOLO ---
     const catalogoProductos = {
@@ -307,9 +307,12 @@
         'azucar':               { nombre: 'Azúcar Rubia', img: 'img/azucar_rubia.png', categoria: 'Despensa', emoji: '🧂' },
         'lata_de_atun':         { nombre: 'Lata de Atún', img: 'img/lata_de_atun.png', categoria: 'Conservas', emoji: '🥫' },
         'atun':                 { nombre: 'Lata de Atún', img: 'img/lata_de_atun.png', categoria: 'Conservas', emoji: '🥫' },
+        'brownie_nb':           { nombre: 'Brownie Nutrabien', img: 'img/brownie.png', categoria: 'Snacks', emoji: '🍫' },
         'brownie':              { nombre: 'Brownie', img: 'img/brownie.png', categoria: 'Snacks', emoji: '🍫' },
+        'jugo_watts':           { nombre: 'Jugo Watts 200ml', img: 'img/jugo_en_caja.png', categoria: 'Bebidas', emoji: '🧃' },
         'jugo_en_caja':         { nombre: 'Jugo en Caja 200ml', img: 'img/jugo_en_caja.png', categoria: 'Bebidas', emoji: '🧃' },
         'jugo':                 { nombre: 'Jugo en Caja 200ml', img: 'img/jugo_en_caja.png', categoria: 'Bebidas', emoji: '🧃' },
+        'jalea_vivo':           { nombre: 'Jalea Vivo', img: 'img/jalea_en_polvo.png', categoria: 'Despensa', emoji: '🍮' },
         'jalea_en_polvo':       { nombre: 'Jalea en Polvo', img: 'img/jalea_en_polvo.png', categoria: 'Despensa', emoji: '🍮' },
         'jalea':                { nombre: 'Jalea en Polvo', img: 'img/jalea_en_polvo.png', categoria: 'Despensa', emoji: '🍮' },
     };
@@ -449,10 +452,9 @@
         screenEscaneo.style.display = 'flex';
         txtEscaner.innerText = "Buscando producto...";
         
-        // Configuración para abrir la cámara trasera de forma óptima en iPhone
         const constraints = {
             video: {
-                facingMode: { exact: "environment" },
+                facingMode: { ideal: "environment" },
                 width: { ideal: 1280 },
                 height: { ideal: 720 }
             }
@@ -465,7 +467,6 @@
                 iniciarBucleYOLO();
             })
             .catch(err => { 
-                // Fallback por si la cámara trasera directa falla o no tiene permisos HTTPS
                 navigator.mediaDevices.getUserMedia({ video: true })
                     .then(stream => {
                         streamCamara = stream;
@@ -477,10 +478,8 @@
                         txtEscaner.innerHTML = `
                             <div style="background: rgba(245, 101, 101, 0.95); color: white; padding: 15px; border-radius: 16px; margin: 20px; font-size: 14px; line-height: 1.4; text-align: left; box-shadow: 0 10px 20px rgba(0,0,0,0.3);">
                                 <strong style="font-size: 16px; display: block; margin-bottom: 5px;">⚠️ Acceso a Cámara Bloqueado</strong>
-                                Los navegadores de iOS (Safari/Chrome) bloquean la cámara si entras por una red local insegura (HTTP).<br><br>
-                                <strong>Cómo resolverlo para tu examen:</strong><br>
-                                1. Conecta tu Mac y celular por <strong>Ngrok</strong> (HTTPS).<br>
-                                2. Sube este HTML a GitHub Pages y pon la URL de Ngrok en el fetch.
+                                Los navegadores de iOS bloquean la cámara si entras por una red local insegura (HTTP).<br><br>
+                                Asegúrate de estar usando el enlace <strong>HTTPS</strong> de GitHub Pages.
                             </div>
                         `;
                     });
@@ -497,7 +496,7 @@
         }
     }
 
-    // Conexión real con app.py (Flask) usando la IP del computador
+    // Conexión real con app.py (Flask) usando Ngrok con bypass de advertencia
     function iniciarBucleYOLO() {
         escaneando = true;
         bottomSheet.classList.remove('show');
@@ -515,12 +514,18 @@
                 const formData = new FormData();
                 formData.append('image', blob, 'captura.jpg');
 
-                // Envío de datos al Servidor Flask corriendo en tu Mac
-                fetch(API_URL, { method: 'POST', body: formData })
+                // Enviamos la petición POST incluyendo la cabecera para saltar la advertencia de Ngrok
+                fetch(API_URL, { 
+                    method: 'POST', 
+                    headers: {
+                        'ngrok-skip-browser-warning': 'true' // Evita la pantalla de bloqueo de Ngrok en móviles
+                    },
+                    body: formData 
+                })
                 .then(res => res.json())
                 .then(data => {
                     if (data.detecciones && data.detecciones.length > 0) {
-                        // ¡Producto detectado por tu best.pt!
+                        // ¡YOLO identificó el producto!
                         escaneando = false;
                         clearInterval(bucleEscaneo);
                         
@@ -528,22 +533,25 @@
                         let labelOriginal = data.detecciones[0].producto;
                         let nombre = labelOriginal.replace(/_/g, ' ');
                         
-                        // Buscar si existe en catálogo para colocar su emoji e imagen correspondiente
                         let key = labelOriginal.toLowerCase().replace(/ /g, '_');
                         let catalogado = catalogoProductos[key];
                         
-                        tituloProducto.innerText = catalogado ? catalogado.nombre : nombre;
+                        tituloProducto.innerText = catalogatedName(catalogado, nombre);
                         emojiPlaceholder.innerText = catalogado ? catalogado.emoji : '📦';
                         
-                        // Mostrar Bottom Sheet interactivo
                         bottomSheet.classList.add('show');
                     }
                 }).catch(err => {
-                    console.log("Esperando conexión con Flask en " + API_URL);
+                    console.log("Conectando con la API en " + API_URL);
                     txtEscaner.innerText = "Apuntando a la despensa...";
                 });
             }, 'image/jpeg');
         }, 1000);
+    }
+
+    function catalogatedName(catalogado, nombreDefault) {
+        if (!catalogado) return nombreDefault;
+        return catalogado.nombre;
     }
 
     function reiniciarEscaneo() {
