@@ -1,0 +1,593 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Despensa Inteligente</title>
+    <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+    <style>
+        :root {
+            --bg-crema: #FDFBF7;
+            --verde-sage: #84A98C;
+            --verde-claro: #E8F0EA;
+            --texto-oscuro: #2D3748;
+            --texto-gris: #A0AEC0;
+            --blanco: #FFFFFF;
+            --fresco: #48BB78;
+            --por-vencer: #ECC94B;
+            --vence-hoy: #F56565;
+            --sombra: 0 4px 15px rgba(0,0,0,0.05);
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+
+        body {
+            font-family: 'Nunito', sans-serif;
+            background-color: #e2e8f0; /* Fondo del computador */
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+        }
+
+        /* Simulador de iPhone 16 */
+        #app-container {
+            width: 100%;
+            max-width: 400px;
+            height: 100%;
+            max-height: 850px;
+            background-color: var(--bg-crema);
+            position: relative;
+            overflow: hidden;
+            border-radius: 40px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.2);
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* Vistas de la App */
+        .screen {
+            flex: 1;
+            overflow-y: auto;
+            padding: 30px 20px 100px 20px;
+            display: none; /* Ocultas por defecto */
+            animation: fadeIn 0.3s ease;
+        }
+        .screen.active { display: block; }
+        
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+        /* Headers comunes */
+        .sup-header { font-size: 12px; font-weight: 700; color: var(--texto-gris); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 5px; }
+        h1 { font-size: 28px; font-weight: 800; color: var(--texto-oscuro); margin-bottom: 20px; }
+
+        /* Buscador y Botón Escanear */
+        .top-actions { display: flex; gap: 10px; margin-bottom: 20px; }
+        .search-bar { flex: 1; background: var(--blanco); padding: 12px 15px; border-radius: 20px; display: flex; align-items: center; gap: 10px; color: var(--texto-gris); box-shadow: var(--sombra); }
+        .btn-escanear { background: var(--texto-oscuro); color: var(--blanco); padding: 12px 20px; border-radius: 20px; font-weight: 700; display: flex; align-items: center; gap: 8px; border: none; cursor: pointer; box-shadow: var(--sombra); }
+
+        /* Chips (Categorías) */
+        .chips-container { display: flex; gap: 10px; overflow-x: auto; padding-bottom: 10px; margin-bottom: 15px; scrollbar-width: none; }
+        .chips-container::-webkit-scrollbar { display: none; }
+        .chip { background: var(--blanco); padding: 8px 16px; border-radius: 20px; font-weight: 600; font-size: 14px; white-space: nowrap; color: var(--texto-gris); box-shadow: var(--sombra); }
+        .chip.active { background: var(--verde-sage); color: var(--blanco); }
+
+        /* Grid Despensa */
+        .grid-despensa { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
+        .card-producto { background: var(--blanco); border-radius: 24px; padding: 15px; text-align: center; box-shadow: var(--sombra); position: relative; }
+        .card-producto img { width: 70px; height: 70px; object-fit: contain; margin-bottom: 10px; }
+        .badge { position: absolute; top: 15px; right: 15px; width: 12px; height: 12px; border-radius: 50%; }
+        .badge.fresco { background-color: var(--fresco); }
+        .badge.vence { background-color: var(--por-vencer); }
+        .prod-nombre { font-weight: 700; font-size: 15px; color: var(--texto-oscuro); line-height: 1.2; margin-bottom: 5px; }
+        .prod-cant { font-size: 12px; color: var(--texto-gris); font-weight: 600; }
+        .btn-eliminar { background: none; border: none; color: var(--texto-gris); font-size: 22px; cursor: pointer; padding: 8px; transition: 0.3s; }
+        .btn-eliminar.active { color: var(--vence-hoy); }
+        .card-producto.seleccionado { outline: 3px solid var(--vence-hoy); outline-offset: -3px; }
+        .card-producto.seleccionado::after { content: '✕'; position: absolute; top: 10px; left: 10px; background: var(--vence-hoy); color: white; width: 22px; height: 22px; border-radius: 50%; font-size: 12px; font-weight: 800; display: flex; align-items: center; justify-content: center; }
+        .barra-eliminar { position: absolute; bottom: 90px; left: 20px; right: 20px; background: var(--vence-hoy); color: white; padding: 14px; border-radius: 20px; font-weight: 800; font-size: 15px; text-align: center; cursor: pointer; z-index: 60; box-shadow: 0 8px 20px rgba(245, 101, 101, 0.4); display: none; animation: fadeIn 0.3s ease; }
+
+        /* Lista de Compras */
+        .input-compra { width: 100%; background: var(--blanco); padding: 15px; border-radius: 16px; border: 1px dashed var(--verde-sage); font-family: 'Nunito'; font-size: 16px; margin-bottom: 20px; outline: none; }
+        .lista-categoria { font-weight: 800; color: var(--texto-gris); margin-bottom: 10px; margin-top: 20px; font-size: 14px; letter-spacing: 1px; }
+        .item-compra { background: var(--blanco); padding: 15px; border-radius: 16px; display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; box-shadow: var(--sombra); }
+        .item-info { display: flex; align-items: center; gap: 15px; }
+        .checkbox { width: 24px; height: 24px; border: 2px solid var(--texto-gris); border-radius: 8px; cursor: pointer; transition: all 0.3s; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+        .checkbox.checked { background: var(--verde-sage); border-color: var(--verde-sage); }
+        .checkbox.checked::after { content: '✓'; color: white; font-size: 14px; font-weight: 800; }
+        .item-compra.checked { opacity: 0.5; }
+        .item-compra.checked .item-nombre { text-decoration: line-through; }
+
+        /* Cards de Recetas */
+        .card-receta { background: var(--blanco); border-radius: 24px; padding: 15px; display: flex; gap: 15px; margin-bottom: 15px; box-shadow: var(--sombra); align-items: center; }
+        .receta-img { width: 70px; height: 70px; border-radius: 50%; flex-shrink: 0; object-fit: cover; }
+        .receta-nombre { font-weight: 800; font-size: 16px; margin-bottom: 5px; color: var(--texto-oscuro); }
+        .receta-tiempo { font-size: 13px; color: var(--texto-gris); font-weight: 600; margin-bottom: 5px; }
+        .receta-badge { font-size: 11px; background: #FFF5F5; color: var(--vence-hoy); padding: 4px 10px; border-radius: 8px; display: inline-block; font-weight: 700; }
+
+        /* Pantalla de Escaneo (Overlay) */
+        #screen-escaneo { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: #000; z-index: 100; display: none; flex-direction: column; }
+        .escaneo-header { display: flex; justify-content: space-between; align-items: center; padding: 40px 20px 20px 20px; z-index: 101; color: white; }
+        .btn-cerrar { background: rgba(255,255,255,0.2); border: none; color: white; width: 40px; height: 40px; border-radius: 50%; font-size: 20px; backdrop-filter: blur(5px); }
+        .toggle-escaneo { background: rgba(255,255,255,0.2); border-radius: 30px; display: flex; padding: 4px; backdrop-filter: blur(5px); }
+        .toggle-escaneo span { padding: 6px 16px; border-radius: 20px; font-size: 14px; font-weight: 600; }
+        .toggle-escaneo .active { background: var(--blanco); color: var(--texto-oscuro); }
+        
+        .camara-vista { flex: 1; position: relative; overflow: hidden; }
+        #video-camara { width: 100%; height: 100%; object-fit: cover; }
+        .guia-enfoque { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 250px; height: 250px; border: 2px dashed rgba(255,255,255,0.8); border-radius: 30px; }
+        .loader-txt { position: absolute; bottom: 40px; width: 100%; text-align: center; color: white; font-weight: 600; text-shadow: 0 2px 4px rgba(0,0,0,0.5); }
+
+        /* Bottom Sheet (Añadir a inventario) */
+        .bottom-sheet { position: absolute; bottom: -100%; left: 0; width: 100%; background: var(--bg-crema); border-radius: 32px 32px 0 0; padding: 30px 25px; transition: bottom 0.4s cubic-bezier(0.2, 0.8, 0.2, 1); z-index: 105; box-shadow: 0 -10px 40px rgba(0,0,0,0.2); display: flex; flex-direction: column; align-items: center; }
+        .bottom-sheet.show { bottom: 0; }
+        .drag-handle { width: 50px; height: 5px; background: #CBD5E0; border-radius: 5px; margin-bottom: 20px; }
+        .bs-img-placeholder { width: 100px; height: 100px; background: var(--blanco); border-radius: 20px; margin-bottom: 15px; box-shadow: var(--sombra); display: flex; align-items: center; justify-content: center; font-size: 40px; color: var(--verde-sage); }
+        .bs-titulo { font-size: 24px; font-weight: 800; color: var(--texto-oscuro); margin-bottom: 5px; text-transform: capitalize; }
+        .bs-cat { color: var(--texto-gris); font-weight: 600; margin-bottom: 25px; }
+        
+        .stepper { display: flex; align-items: center; gap: 20px; background: var(--blanco); padding: 10px 20px; border-radius: 20px; box-shadow: var(--sombra); margin-bottom: 20px; }
+        .stepper button { background: none; border: none; font-size: 24px; color: var(--verde-sage); cursor: pointer; font-weight: bold; }
+        .stepper span { font-size: 18px; font-weight: 800; }
+        
+        .btn-primario { width: 100%; background: var(--verde-sage); color: var(--blanco); padding: 16px; border-radius: 20px; font-weight: 800; font-size: 16px; border: none; margin-bottom: 15px; cursor: pointer; box-shadow: 0 8px 20px rgba(132, 169, 140, 0.3); }
+        .btn-texto { background: none; border: none; color: var(--texto-gris); font-weight: 700; cursor: pointer; font-family: 'Nunito'; }
+
+        /* Toast Notification */
+        .toast { position: absolute; top: -60px; left: 50%; transform: translateX(-50%); background: var(--texto-oscuro); color: white; padding: 12px 24px; border-radius: 30px; font-weight: 600; font-size: 14px; transition: top 0.3s; z-index: 200; display: flex; align-items: center; gap: 8px; }
+        .toast.show { top: 40px; }
+
+        /* Tab Bar Navegación Inferior */
+        .tab-bar { position: absolute; bottom: 0; left: 0; width: 100%; background: var(--blanco); display: flex; justify-content: space-around; padding: 20px 10px 30px 10px; border-radius: 30px 30px 0 0; box-shadow: 0 -5px 20px rgba(0,0,0,0.03); z-index: 50; }
+        .tab-item { display: flex; flex-direction: column; align-items: center; gap: 5px; color: var(--texto-gris); text-decoration: none; font-size: 12px; font-weight: 700; cursor: pointer; transition: 0.3s; }
+        .tab-item i { font-size: 24px; }
+        .tab-item.active { color: var(--verde-sage); }
+    </style>
+</head>
+<body>
+
+<div id="app-container">
+
+    <div id="toast" class="toast"><i class="ph ph-check-circle"></i> Producto añadido a tu despensa</div>
+
+    <div id="screen-despensa" class="screen active">
+        <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+            <div>
+                <div class="sup-header">Tu Hogar</div>
+                <h1 style="margin-bottom: 0;">Mi Despensa</h1>
+            </div>
+            <button class="btn-eliminar" id="btn-modo-eliminar" onclick="toggleModoEliminar()"><i class="ph ph-trash"></i></button>
+        </div>
+        <div style="height: 20px;"></div>
+        
+        <div class="top-actions">
+            <div class="search-bar"><i class="ph ph-magnifying-glass"></i> Buscar en tu despensa...</div>
+            <button class="btn-escanear" onclick="abrirEscaneo()"><i class="ph ph-scan"></i> Escanear</button>
+        </div>
+
+        <div class="chips-container" id="chips-despensa">
+            <div class="chip active" onclick="filtrarDespensa('Todos', this)">Todos</div>
+            <div class="chip" onclick="filtrarDespensa('Bebidas', this)">Bebidas</div>
+            <div class="chip" onclick="filtrarDespensa('Conservas', this)">Conservas</div>
+            <div class="chip" onclick="filtrarDespensa('Snacks', this)">Snacks</div>
+            <div class="chip" onclick="filtrarDespensa('Despensa', this)">Despensa</div>
+        </div>
+
+        <div class="grid-despensa" id="grid-inventario">
+            <p id="despensa-vacia" style="grid-column: 1 / -1; text-align: center; color: var(--texto-gris); font-weight: 600; padding: 40px 0;">Escanea tu primer producto para comenzar</p>
+        </div>
+    </div>
+
+    <div id="screen-recetas" class="screen">
+        <div class="sup-header">Para ti hoy</div>
+        <h1>¿Qué cocino hoy?</h1>
+        <p style="color: var(--texto-gris); font-weight: 600; margin-bottom: 20px; font-size: 14px;">Recetas con ingredientes por vencer</p>
+
+        <div class="chips-container">
+            <div class="chip active">Todas</div>
+            <div class="chip">Rápido</div>
+            <div class="chip">Vegetariano</div>
+            <div class="chip">Desayuno</div>
+        </div>
+
+        <div class="card-receta">
+            <img class="receta-img" src="img/ensalada_caprese.png" alt="Ensalada caprese">
+            <div>
+                <div class="receta-nombre">Ensalada caprese</div>
+                <div class="receta-tiempo"><i class="ph ph-clock"></i> 15 min</div>
+                <div class="receta-badge">Usa ingredientes por vencer</div>
+            </div>
+        </div>
+
+        <div class="card-receta">
+            <img class="receta-img" src="img/tostadas_francesas.png" alt="Tostadas francesas">
+            <div>
+                <div class="receta-nombre">Tostadas francesas</div>
+                <div class="receta-tiempo"><i class="ph ph-clock"></i> 20 min</div>
+                <div class="receta-badge">Usa ingredientes por vencer</div>
+            </div>
+        </div>
+
+        <div class="card-receta">
+            <img class="receta-img" src="img/batido_platano.png" alt="Batido de plátano">
+            <div>
+                <div class="receta-nombre">Batido de plátano</div>
+                <div class="receta-tiempo"><i class="ph ph-clock"></i> 5 min</div>
+                <div class="receta-badge">Usa ingredientes por vencer</div>
+            </div>
+        </div>
+
+        <div class="card-receta">
+            <img class="receta-img" src="img/pasta_atun.png" alt="Pasta con atún">
+            <div>
+                <div class="receta-nombre">Pasta con atún</div>
+                <div class="receta-tiempo"><i class="ph ph-clock"></i> 25 min</div>
+                <div class="receta-badge">Usa ingredientes por vencer</div>
+            </div>
+        </div>
+    </div>
+
+    <div id="screen-compras" class="screen">
+        <div class="sup-header">Tu Lista</div>
+        <h1>Lista de Compras</h1>
+        
+        <input type="text" class="input-compra" id="input-compra" placeholder="Agregar producto..." onkeydown="if(event.key==='Enter') agregarItemCompra()">
+
+        <div id="lista-compras"></div>
+        <p id="lista-vacia" style="text-align: center; color: var(--texto-gris); font-weight: 600; padding: 40px 0;">Agrega productos a tu lista de compras</p>
+    </div>
+
+    <div id="screen-escaneo">
+        <div class="escaneo-header">
+            <button class="btn-cerrar" onclick="cerrarEscaneo()"><i class="ph ph-x"></i></button>
+            <div class="toggle-escaneo">
+                <div class="active">Ingresar</div>
+                <div>Retirar</div>
+            </div>
+            <div style="width: 40px;"></div> </div>
+
+        <div class="camara-vista">
+            <video id="video-camara" autoplay playsinline></video>
+            <div class="guia-enfoque"></div>
+            <div class="loader-txt" id="txt-escaner">Coloca el producto frente a la cámara</div>
+        </div>
+
+        <div id="bottom-sheet-anadir" class="bottom-sheet">
+            <div class="drag-handle"></div>
+            <div class="bs-img-placeholder"><i class="ph ph-package"></i></div>
+            <div class="bs-titulo" id="bs-nombre">Galletas Frac</div>
+            <div class="bs-cat" id="bs-detalle">Detectado por YOLO</div>
+            
+            <div class="stepper">
+                <button onclick="cambiarCantidad(-1)">-</button>
+                <span id="bs-cantidad">1</span>
+                <button onclick="cambiarCantidad(1)">+</button>
+            </div>
+            
+            <button class="btn-primario" onclick="confirmarAñadir()">Añadir a inventario</button>
+            <button class="btn-texto" onclick="reiniciarEscaneo()">Cancelar</button>
+        </div>
+    </div>
+
+    <div class="barra-eliminar" id="barra-eliminar" onclick="confirmarEliminar()">Eliminar seleccionados</div>
+
+    <div class="tab-bar">
+        <div class="tab-item active" onclick="cambiarTab('despensa', this)">
+            <i class="ph-fill ph-house"></i>
+            <span>Despensa</span>
+        </div>
+        <div class="tab-item" onclick="cambiarTab('recetas', this)">
+            <i class="ph ph-cooking-pot"></i>
+            <span>Recetas</span>
+        </div>
+        <div class="tab-item" onclick="cambiarTab('compras', this)">
+            <i class="ph ph-shopping-cart"></i>
+            <span>Compras</span>
+        </div>
+    </div>
+
+</div>
+
+<script>
+    // --- Catálogo de productos YOLO ---
+    const catalogoProductos = {
+        'botella_de_cocacola':  { nombre: 'Coca-Cola 591ml', img: 'img/cocacola.png', categoria: 'Bebidas' },
+        'cocacola':             { nombre: 'Coca-Cola 591ml', img: 'img/cocacola.png', categoria: 'Bebidas' },
+        'tallarines_carozzi':   { nombre: 'Tallarines Carozzi', img: 'img/tallarines_carozzi.png', categoria: 'Conservas' },
+        'tallarines':           { nombre: 'Tallarines Carozzi', img: 'img/tallarines_carozzi.png', categoria: 'Conservas' },
+        'galletas_frac':        { nombre: 'Galletas Frac', img: 'img/galletas_frac.png', categoria: 'Snacks' },
+        'galletas_de_soda':     { nombre: 'Galletas de Soda', img: 'img/galletas_de_soda.png', categoria: 'Snacks' },
+        'galletas_de_vino':     { nombre: 'Galletas de Vino', img: 'img/galletas_de_vino.png', categoria: 'Snacks' },
+        'azucar_rubia':         { nombre: 'Azúcar Rubia', img: 'img/azucar_rubia.png', categoria: 'Despensa' },
+        'azucar':               { nombre: 'Azúcar Rubia', img: 'img/azucar_rubia.png', categoria: 'Despensa' },
+        'lata_de_atun':         { nombre: 'Lata de Atún', img: 'img/lata_de_atun.png', categoria: 'Conservas' },
+        'atun':                 { nombre: 'Lata de Atún', img: 'img/lata_de_atun.png', categoria: 'Conservas' },
+        'brownie':              { nombre: 'Brownie', img: 'img/brownie.png', categoria: 'Snacks' },
+        'jugo_en_caja':         { nombre: 'Jugo en Caja 200ml', img: 'img/jugo_en_caja.png', categoria: 'Bebidas' },
+        'jugo':                 { nombre: 'Jugo en Caja 200ml', img: 'img/jugo_en_caja.png', categoria: 'Bebidas' },
+        'jalea_en_polvo':       { nombre: 'Jalea en Polvo', img: 'img/jalea_en_polvo.png', categoria: 'Despensa' },
+        'jalea':                { nombre: 'Jalea en Polvo', img: 'img/jalea_en_polvo.png', categoria: 'Despensa' },
+    };
+
+    // Inventario en memoria
+    let inventario = [];
+
+    let filtroActual = 'Todos';
+    let modoEliminar = false;
+    let seleccionados = new Set();
+
+    function toggleModoEliminar() {
+        modoEliminar = !modoEliminar;
+        seleccionados.clear();
+        document.getElementById('btn-modo-eliminar').classList.toggle('active', modoEliminar);
+        document.getElementById('barra-eliminar').style.display = modoEliminar ? 'block' : 'none';
+        actualizarBarraEliminar();
+        renderizarDespensa();
+    }
+
+    function toggleSeleccion(index) {
+        if (!modoEliminar) return;
+        if (seleccionados.has(index)) {
+            seleccionados.delete(index);
+        } else {
+            seleccionados.add(index);
+        }
+        actualizarBarraEliminar();
+        renderizarDespensa();
+    }
+
+    function actualizarBarraEliminar() {
+        const barra = document.getElementById('barra-eliminar');
+        const n = seleccionados.size;
+        barra.textContent = n === 0 ? 'Selecciona productos para eliminar' : `Eliminar ${n} producto${n > 1 ? 's' : ''}`;
+        barra.style.opacity = n === 0 ? '0.6' : '1';
+    }
+
+    function confirmarEliminar() {
+        if (seleccionados.size === 0) return;
+        inventario = inventario.filter((_, i) => !seleccionados.has(i));
+        toggleModoEliminar();
+    }
+
+    function agregarAlInventario(nombreDetectado, cantidad) {
+        let key = nombreDetectado.toLowerCase().replace(/ /g, '_');
+        let producto = catalogoProductos[key];
+
+        let nombre = producto ? producto.nombre : nombreDetectado.replace(/_/g, ' ');
+        let img = producto ? producto.img : null;
+        let categoria = producto ? producto.categoria : 'Otros';
+
+        inventario.push({ nombre, img, cantidad, categoria });
+        renderizarDespensa();
+    }
+
+    function filtrarDespensa(categoria, elemento) {
+        filtroActual = categoria;
+        document.querySelectorAll('#chips-despensa .chip').forEach(c => c.classList.remove('active'));
+        elemento.classList.add('active');
+        renderizarDespensa();
+    }
+
+    function renderizarDespensa() {
+        const grid = document.getElementById('grid-inventario');
+
+        const productosFiltrados = filtroActual === 'Todos'
+            ? inventario
+            : inventario.filter(p => p.categoria === filtroActual);
+
+        if (inventario.length === 0) {
+            grid.innerHTML = '<p style="grid-column: 1 / -1; text-align: center; color: var(--texto-gris); font-weight: 600; padding: 40px 0;">Escanea tu primer producto para comenzar</p>';
+            return;
+        }
+
+        if (productosFiltrados.length === 0) {
+            grid.innerHTML = '<p style="grid-column: 1 / -1; text-align: center; color: var(--texto-gris); font-weight: 600; padding: 40px 0;">No hay productos en esta categoría</p>';
+            return;
+        }
+
+        grid.innerHTML = productosFiltrados.map(p => {
+            const idx = inventario.indexOf(p);
+            const sel = seleccionados.has(idx) ? 'seleccionado' : '';
+            return `
+            <div class="card-producto ${sel}" onclick="toggleSeleccion(${idx})" style="${modoEliminar ? 'cursor:pointer' : ''}">
+                <div class="badge fresco"></div>
+                ${p.img
+                    ? `<img src="${p.img}" alt="${p.nombre}">`
+                    : `<div style="font-size: 40px; margin-bottom: 10px;">📦</div>`}
+                <div class="prod-nombre">${p.nombre}</div>
+                <div class="prod-cant">${p.cantidad} ${p.cantidad === 1 ? 'unidad' : 'unidades'}</div>
+            </div>
+        `}).join('');
+    }
+
+    // --- Lógica de Navegación ---
+    function cambiarTab(pantallaId, elemento) {
+        // Ocultar todas las pantallas base
+        document.getElementById('screen-despensa').classList.remove('active');
+        document.getElementById('screen-recetas').classList.remove('active');
+        document.getElementById('screen-compras').classList.remove('active');
+        
+        // Desactivar iconos
+        document.querySelectorAll('.tab-item').forEach(tab => {
+            tab.classList.remove('active');
+            let icono = tab.querySelector('i');
+            icono.className = icono.className.replace('ph-fill', 'ph'); // Cambiar a outline
+        });
+
+        // Activar seleccionada
+        document.getElementById('screen-' + pantallaId).classList.add('active');
+        elemento.classList.add('active');
+        let iconoActivo = elemento.querySelector('i');
+        iconoActivo.className = iconoActivo.className.replace('ph ', 'ph-fill ');
+    }
+
+    // --- Lógica de Escáner y Cámara ---
+    const screenEscaneo = document.getElementById('screen-escaneo');
+    const bottomSheet = document.getElementById('bottom-sheet-anadir');
+    const videoCamara = document.getElementById('video-camara');
+    const txtEscaner = document.getElementById('txt-escaner');
+    const tituloProducto = document.getElementById('bs-nombre');
+    
+    let escaneando = false;
+    let streamCamara = null;
+    let bucleEscaneo;
+
+    function abrirEscaneo() {
+        screenEscaneo.style.display = 'flex';
+        txtEscaner.innerText = "Buscando producto...";
+        
+        // Encender cámara
+        navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } })
+            .then(stream => { 
+                streamCamara = stream;
+                videoCamara.srcObject = stream; 
+                iniciarBucleYOLO();
+            })
+            .catch(err => { 
+                console.error("Error cámara:", err); 
+                txtEscaner.innerText = "Error al abrir la cámara";
+            });
+    }
+
+    function cerrarEscaneo() {
+        screenEscaneo.style.display = 'none';
+        bottomSheet.classList.remove('show');
+        escaneando = false;
+        clearInterval(bucleEscaneo);
+        if(streamCamara) {
+            streamCamara.getTracks().forEach(track => track.stop());
+        }
+    }
+
+    // Conexión real con app.py (Flask)
+    function iniciarBucleYOLO() {
+        escaneando = true;
+        bottomSheet.classList.remove('show');
+
+        bucleEscaneo = setInterval(() => {
+            if (!escaneando) return;
+
+            const canvas = document.createElement('canvas');
+            canvas.width = videoCamara.videoWidth;
+            canvas.height = videoCamara.videoHeight;
+            canvas.getContext('2d').drawImage(videoCamara, 0, 0);
+
+            canvas.toBlob(blob => {
+                const formData = new FormData();
+                formData.append('image', blob, 'captura.jpg');
+
+                // Enviar a Flask
+                fetch('http://127.0.0.1:5001/predict', { method: 'POST', body: formData })
+                .then(res => res.json())
+                .then(data => {
+                    if (data.detecciones && data.detecciones.length > 0) {
+                        // ¡Producto detectado!
+                        escaneando = false;
+                        clearInterval(bucleEscaneo);
+                        
+                        // Actualizar textos
+                        txtEscaner.innerText = "¡Producto identificado!";
+                        let nombre = data.detecciones[0].producto.replace(/_/g, ' ');
+                        tituloProducto.innerText = nombre;
+                        
+                        // Mostrar Bottom Sheet
+                        bottomSheet.classList.add('show');
+                    }
+                }).catch(err => console.log("Esperando servidor..."));
+            }, 'image/jpeg');
+        }, 1000);
+    }
+
+    function reiniciarEscaneo() {
+        bottomSheet.classList.remove('show');
+        txtEscaner.innerText = "Buscando producto...";
+        iniciarBucleYOLO();
+    }
+
+    // --- Lógica del Bottom Sheet y Añadir ---
+    let cantidadActual = 1;
+    function cambiarCantidad(cambio) {
+        cantidadActual += cambio;
+        if(cantidadActual < 1) cantidadActual = 1;
+        document.getElementById('bs-cantidad').innerText = cantidadActual;
+    }
+
+    // --- Lógica de Lista de Compras ---
+    let listaCompras = [];
+
+    function agregarItemCompra() {
+        const input = document.getElementById('input-compra');
+        const texto = input.value.trim();
+        if (!texto) return;
+
+        listaCompras.push({ nombre: texto, checked: false });
+        input.value = '';
+        renderizarListaCompras();
+    }
+
+    function toggleCheck(index) {
+        listaCompras[index].checked = !listaCompras[index].checked;
+        renderizarListaCompras();
+    }
+
+    function renderizarListaCompras() {
+        const contenedor = document.getElementById('lista-compras');
+        const msgVacio = document.getElementById('lista-vacia');
+
+        if (listaCompras.length === 0) {
+            contenedor.innerHTML = '';
+            msgVacio.style.display = 'block';
+            return;
+        }
+
+        msgVacio.style.display = 'none';
+
+        const pendientes = listaCompras.map((item, i) => ({ ...item, i })).filter(item => !item.checked);
+        const completados = listaCompras.map((item, i) => ({ ...item, i })).filter(item => item.checked);
+
+        let html = '';
+
+        if (pendientes.length > 0) {
+            html += '<div class="lista-categoria">PENDIENTES</div>';
+            html += pendientes.map(item => crearItemHTML(item)).join('');
+        }
+
+        if (completados.length > 0) {
+            html += '<div class="lista-categoria">COMPLETADOS</div>';
+            html += completados.map(item => crearItemHTML(item)).join('');
+        }
+
+        contenedor.innerHTML = html;
+    }
+
+    function crearItemHTML(item) {
+        return `
+            <div class="item-compra ${item.checked ? 'checked' : ''}" onclick="toggleCheck(${item.i})">
+                <div class="item-info">
+                    <div class="checkbox ${item.checked ? 'checked' : ''}"></div>
+                    <div>
+                        <div class="item-nombre" style="font-weight: 700;">${item.nombre}</div>
+                    </div>
+                </div>
+            </div>
+        `;
+    }
+
+    function confirmarAñadir() {
+        let nombreProducto = tituloProducto.innerText;
+        agregarAlInventario(nombreProducto, cantidadActual);
+
+        cerrarEscaneo();
+
+        const toast = document.getElementById('toast');
+        toast.classList.add('show');
+        setTimeout(() => { toast.classList.remove('show'); }, 3000);
+
+        cantidadActual = 1;
+        document.getElementById('bs-cantidad').innerText = cantidadActual;
+    }
+</script>
+
+</body>
+</html>
