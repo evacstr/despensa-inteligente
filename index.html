@@ -114,10 +114,10 @@
         .toggle-escaneo span { padding: 6px 16px; border-radius: 20px; font-size: 14px; font-weight: 600; }
         .toggle-escaneo .active { background: var(--blanco); color: var(--texto-oscuro); }
         
-        .camara-vista { flex: 1; position: relative; overflow: hidden; }
+        .camara-vista { flex: 1; position: relative; overflow: hidden; display: flex; align-items: center; justify-content: center; }
         #video-camara { width: 100%; height: 100%; object-fit: cover; }
-        .guia-enfoque { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 250px; height: 250px; border: 2px dashed rgba(255,255,255,0.8); border-radius: 30px; }
-        .loader-txt { position: absolute; bottom: 40px; width: 100%; text-align: center; color: white; font-weight: 600; text-shadow: 0 2px 4px rgba(0,0,0,0.5); }
+        .guia-enfoque { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 250px; height: 250px; border: 2px dashed rgba(255,255,255,0.8); border-radius: 30px; pointer-events: none; }
+        .loader-txt { position: absolute; bottom: 40px; width: 100%; text-align: center; color: white; font-weight: 600; text-shadow: 0 2px 4px rgba(0,0,0,0.5); z-index: 110; padding: 0 20px; }
 
         /* Bottom Sheet (Añadir a inventario) */
         .bottom-sheet { position: absolute; bottom: -100%; left: 0; width: 100%; background: var(--bg-crema); border-radius: 32px 32px 0 0; padding: 30px 25px; transition: bottom 0.4s cubic-bezier(0.2, 0.8, 0.2, 1); z-index: 105; box-shadow: 0 -10px 40px rgba(0,0,0,0.2); display: flex; flex-direction: column; align-items: center; }
@@ -192,7 +192,7 @@
         </div>
 
         <div class="card-receta">
-            <img class="receta-img" src="img/ensalada_caprese.png" alt="Ensalada caprese">
+            <img class="receta-img" src="img/ensalada_caprese.png" alt="Ensalada caprese" onerror="this.src='https://images.unsplash.com/photo-1592417817098-8f3d6eb19675?w=150'">
             <div>
                 <div class="receta-nombre">Ensalada caprese</div>
                 <div class="receta-tiempo"><i class="ph ph-clock"></i> 15 min</div>
@@ -201,7 +201,7 @@
         </div>
 
         <div class="card-receta">
-            <img class="receta-img" src="img/tostadas_francesas.png" alt="Tostadas francesas">
+            <img class="receta-img" src="img/tostadas_francesas.png" alt="Tostadas francesas" onerror="this.src='https://images.unsplash.com/photo-1484723091739-30a097e8f929?w=150'">
             <div>
                 <div class="receta-nombre">Tostadas francesas</div>
                 <div class="receta-tiempo"><i class="ph ph-clock"></i> 20 min</div>
@@ -210,7 +210,7 @@
         </div>
 
         <div class="card-receta">
-            <img class="receta-img" src="img/batido_platano.png" alt="Batido de plátano">
+            <img class="receta-img" src="img/batido_platano.png" alt="Batido de plátano" onerror="this.src='https://images.unsplash.com/photo-1553530666-ba11a7da3888?w=150'">
             <div>
                 <div class="receta-nombre">Batido de plátano</div>
                 <div class="receta-tiempo"><i class="ph ph-clock"></i> 5 min</div>
@@ -219,7 +219,7 @@
         </div>
 
         <div class="card-receta">
-            <img class="receta-img" src="img/pasta_atun.png" alt="Pasta con atún">
+            <img class="receta-img" src="img/pasta_atun.png" alt="Pasta con atún" onerror="this.src='https://images.unsplash.com/photo-1546549032-9571cd6b27df?w=150'">
             <div>
                 <div class="receta-nombre">Pasta con atún</div>
                 <div class="receta-tiempo"><i class="ph ph-clock"></i> 25 min</div>
@@ -255,7 +255,7 @@
 
         <div id="bottom-sheet-anadir" class="bottom-sheet">
             <div class="drag-handle"></div>
-            <div class="bs-img-placeholder"><i class="ph ph-package"></i></div>
+            <div class="bs-img-placeholder" id="bs-emoji-icon">🥤</div>
             <div class="bs-titulo" id="bs-nombre">Galletas Frac</div>
             <div class="bs-cat" id="bs-detalle">Detectado por YOLO</div>
             
@@ -290,24 +290,36 @@
 </div>
 
 <script>
+    // ── CONFIGURACIÓN DE TU DIRECCIÓN IP LOCAL ─────────────────────────────────────────
+    // Tu iPhone se conectará a esta IP para enviar las fotos a la API en tu MacBook.
+    const API_URL = 'http://10.135.62.251:5001/predict';
+
     // --- Catálogo de productos YOLO ---
     const catalogoProductos = {
-        'botella_de_cocacola':  { nombre: 'Coca-Cola 591ml', img: 'img/cocacola.png', categoria: 'Bebidas' },
-        'cocacola':             { nombre: 'Coca-Cola 591ml', img: 'img/cocacola.png', categoria: 'Bebidas' },
-        'tallarines_carozzi':   { nombre: 'Tallarines Carozzi', img: 'img/tallarines_carozzi.png', categoria: 'Conservas' },
-        'tallarines':           { nombre: 'Tallarines Carozzi', img: 'img/tallarines_carozzi.png', categoria: 'Conservas' },
-        'galletas_frac':        { nombre: 'Galletas Frac', img: 'img/galletas_frac.png', categoria: 'Snacks' },
-        'galletas_de_soda':     { nombre: 'Galletas de Soda', img: 'img/galletas_de_soda.png', categoria: 'Snacks' },
-        'galletas_de_vino':     { nombre: 'Galletas de Vino', img: 'img/galletas_de_vino.png', categoria: 'Snacks' },
-        'azucar_rubia':         { nombre: 'Azúcar Rubia', img: 'img/azucar_rubia.png', categoria: 'Despensa' },
-        'azucar':               { nombre: 'Azúcar Rubia', img: 'img/azucar_rubia.png', categoria: 'Despensa' },
-        'lata_de_atun':         { nombre: 'Lata de Atún', img: 'img/lata_de_atun.png', categoria: 'Conservas' },
-        'atun':                 { nombre: 'Lata de Atún', img: 'img/lata_de_atun.png', categoria: 'Conservas' },
-        'brownie':              { nombre: 'Brownie', img: 'img/brownie.png', categoria: 'Snacks' },
-        'jugo_en_caja':         { nombre: 'Jugo en Caja 200ml', img: 'img/jugo_en_caja.png', categoria: 'Bebidas' },
-        'jugo':                 { nombre: 'Jugo en Caja 200ml', img: 'img/jugo_en_caja.png', categoria: 'Bebidas' },
-        'jalea_en_polvo':       { nombre: 'Jalea en Polvo', img: 'img/jalea_en_polvo.png', categoria: 'Despensa' },
-        'jalea':                { nombre: 'Jalea en Polvo', img: 'img/jalea_en_polvo.png', categoria: 'Despensa' },
+        'botella_de_cocacola':  { nombre: 'Coca-Cola 591ml', img: 'img/cocacola.png', categoria: 'Bebidas', emoji: '🥤' },
+        'cocacola':             { nombre: 'Coca-Cola 591ml', img: 'img/cocacola.png', categoria: 'Bebidas', emoji: '🥤' },
+        'tallarines_carozzi':   { nombre: 'Tallarines Carozzi', img: 'img/tallarines_carozzi.png', categoria: 'Conservas', emoji: '🍝' },
+        'tallarines':           { nombre: 'Tallarines Carozzi', img: 'img/tallarines_carozzi.png', categoria: 'Conservas', emoji: '🍝' },
+        'galletas_frac':        { nombre: 'Galletas Frac', img: 'img/galletas_frac.png', categoria: 'Snacks', emoji: '🍪' },
+        'galletas_de_soda':     { nombre: 'Galletas de Soda', img: 'img/galletas_de_soda.png', categoria: 'Snacks', emoji: '🍞' },
+        'galletas_de_vino':     { nombre: 'Galletas de Vino', img: 'img/galletas_de_vino.png', categoria: 'Snacks', emoji: '🍪' },
+        'azucar_rubia':         { nombre: 'Azúcar Rubia', img: 'img/azucar_rubia.png', categoria: 'Despensa', emoji: '🧂' },
+        'azucar':               { nombre: 'Azúcar Rubia', img: 'img/azucar_rubia.png', categoria: 'Despensa', emoji: '🧂' },
+        'lata_de_atun':         { nombre: 'Lata de Atún', img: 'img/lata_de_atun.png', categoria: 'Conservas', emoji: '🥫' },
+        'atun':                 { nombre: 'Lata de Atún', img: 'img/lata_de_atun.png', categoria: 'Conservas', emoji: '🥫' },
+        'brownie':              { nombre: 'Brownie', img: 'img/brownie.png', categoria: 'Snacks', emoji: '🍫' },
+        'jugo_en_caja':         { nombre: 'Jugo en Caja 200ml', img: 'img/jugo_en_caja.png', categoria: 'Bebidas', emoji: '🧃' },
+        'jugo':                 { nombre: 'Jugo en Caja 200ml', img: 'img/jugo_en_caja.png', categoria: 'Bebidas', emoji: '🧃' },
+        'jalea_en_polvo':       { nombre: 'Jalea en Polvo', img: 'img/jalea_en_polvo.png', categoria: 'Despensa', emoji: '🍮' },
+        'jalea':                { nombre: 'Jalea en Polvo', img: 'img/jalea_en_polvo.png', categoria: 'Despensa', emoji: '🍮' },
+    };
+
+    const emojiPorCategoria = {
+        'Bebidas': '🥤',
+        'Conservas': '🥫',
+        'Snacks': '🍪',
+        'Despensa': '🧂',
+        'Otros': '📦'
     };
 
     // Inventario en memoria
@@ -357,8 +369,9 @@
         let nombre = producto ? producto.nombre : nombreDetectado.replace(/_/g, ' ');
         let img = producto ? producto.img : null;
         let categoria = producto ? producto.categoria : 'Otros';
+        let emoji = producto ? producto.emoji : '📦';
 
-        inventario.push({ nombre, img, cantidad, categoria });
+        inventario.push({ nombre, img, cantidad, categoria, emoji });
         renderizarDespensa();
     }
 
@@ -377,7 +390,7 @@
             : inventario.filter(p => p.categoria === filtroActual);
 
         if (inventario.length === 0) {
-            grid.innerHTML = '<p style="grid-column: 1 / -1; text-align: center; color: var(--texto-gris); font-weight: 600; padding: 40px 0;">Escanea tu primer producto para comenzar</p>';
+            grid.innerHTML = '<p style="grid-column: 1 / -1; text-align: center; color: var(--texto-gris); font-weight: 600; padding: 40px 0;">Escanea tu primer producto para comenzar 📷</p>';
             return;
         }
 
@@ -389,12 +402,13 @@
         grid.innerHTML = productosFiltrados.map(p => {
             const idx = inventario.indexOf(p);
             const sel = seleccionados.has(idx) ? 'seleccionado' : '';
+            const fallbackEmoji = p.emoji || emojiPorCategoria[p.categoria] || '📦';
             return `
             <div class="card-producto ${sel}" onclick="toggleSeleccion(${idx})" style="${modoEliminar ? 'cursor:pointer' : ''}">
                 <div class="badge fresco"></div>
                 ${p.img
-                    ? `<img src="${p.img}" alt="${p.nombre}">`
-                    : `<div style="font-size: 40px; margin-bottom: 10px;">📦</div>`}
+                    ? `<img src="${p.img}" alt="${p.nombre}" onerror="this.outerHTML='<div style=\"font-size: 40px; margin-bottom: 10px;\">${fallbackEmoji}</div>'">`
+                    : `<div style="font-size: 40px; margin-bottom: 10px;">${fallbackEmoji}</div>`}
                 <div class="prod-nombre">${p.nombre}</div>
                 <div class="prod-cant">${p.cantidad} ${p.cantidad === 1 ? 'unidad' : 'unidades'}</div>
             </div>
@@ -403,19 +417,16 @@
 
     // --- Lógica de Navegación ---
     function cambiarTab(pantallaId, elemento) {
-        // Ocultar todas las pantallas base
         document.getElementById('screen-despensa').classList.remove('active');
         document.getElementById('screen-recetas').classList.remove('active');
         document.getElementById('screen-compras').classList.remove('active');
         
-        // Desactivar iconos
         document.querySelectorAll('.tab-item').forEach(tab => {
             tab.classList.remove('active');
             let icono = tab.querySelector('i');
-            icono.className = icono.className.replace('ph-fill', 'ph'); // Cambiar a outline
+            icono.className = icono.className.replace('ph-fill', 'ph');
         });
 
-        // Activar seleccionada
         document.getElementById('screen-' + pantallaId).classList.add('active');
         elemento.classList.add('active');
         let iconoActivo = elemento.querySelector('i');
@@ -428,6 +439,7 @@
     const videoCamara = document.getElementById('video-camara');
     const txtEscaner = document.getElementById('txt-escaner');
     const tituloProducto = document.getElementById('bs-nombre');
+    const emojiPlaceholder = document.getElementById('bs-emoji-icon');
     
     let escaneando = false;
     let streamCamara = null;
@@ -437,16 +449,41 @@
         screenEscaneo.style.display = 'flex';
         txtEscaner.innerText = "Buscando producto...";
         
-        // Encender cámara
-        navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } })
+        // Configuración para abrir la cámara trasera de forma óptima en iPhone
+        const constraints = {
+            video: {
+                facingMode: { exact: "environment" },
+                width: { ideal: 1280 },
+                height: { ideal: 720 }
+            }
+        };
+
+        navigator.mediaDevices.getUserMedia(constraints)
             .then(stream => { 
                 streamCamara = stream;
                 videoCamara.srcObject = stream; 
                 iniciarBucleYOLO();
             })
             .catch(err => { 
-                console.error("Error cámara:", err); 
-                txtEscaner.innerText = "Error al abrir la cámara";
+                // Fallback por si la cámara trasera directa falla o no tiene permisos HTTPS
+                navigator.mediaDevices.getUserMedia({ video: true })
+                    .then(stream => {
+                        streamCamara = stream;
+                        videoCamara.srcObject = stream;
+                        iniciarBucleYOLO();
+                    })
+                    .catch(err2 => {
+                        console.error("Error cámara:", err2); 
+                        txtEscaner.innerHTML = `
+                            <div style="background: rgba(245, 101, 101, 0.95); color: white; padding: 15px; border-radius: 16px; margin: 20px; font-size: 14px; line-height: 1.4; text-align: left; box-shadow: 0 10px 20px rgba(0,0,0,0.3);">
+                                <strong style="font-size: 16px; display: block; margin-bottom: 5px;">⚠️ Acceso a Cámara Bloqueado</strong>
+                                Los navegadores de iOS (Safari/Chrome) bloquean la cámara si entras por una red local insegura (HTTP).<br><br>
+                                <strong>Cómo resolverlo para tu examen:</strong><br>
+                                1. Conecta tu Mac y celular por <strong>Ngrok</strong> (HTTPS).<br>
+                                2. Sube este HTML a GitHub Pages y pon la URL de Ngrok en el fetch.
+                            </div>
+                        `;
+                    });
             });
     }
 
@@ -460,7 +497,7 @@
         }
     }
 
-    // Conexión real con app.py (Flask)
+    // Conexión real con app.py (Flask) usando la IP del computador
     function iniciarBucleYOLO() {
         escaneando = true;
         bottomSheet.classList.remove('show');
@@ -469,32 +506,42 @@
             if (!escaneando) return;
 
             const canvas = document.createElement('canvas');
-            canvas.width = videoCamara.videoWidth;
-            canvas.height = videoCamara.videoHeight;
+            canvas.width = videoCamara.videoWidth || 640;
+            canvas.height = videoCamara.videoHeight || 480;
             canvas.getContext('2d').drawImage(videoCamara, 0, 0);
 
             canvas.toBlob(blob => {
+                if(!blob) return;
                 const formData = new FormData();
                 formData.append('image', blob, 'captura.jpg');
 
-                // Enviar a Flask
-                fetch('http://127.0.0.1:5001/predict', { method: 'POST', body: formData })
+                // Envío de datos al Servidor Flask corriendo en tu Mac
+                fetch(API_URL, { method: 'POST', body: formData })
                 .then(res => res.json())
                 .then(data => {
                     if (data.detecciones && data.detecciones.length > 0) {
-                        // ¡Producto detectado!
+                        // ¡Producto detectado por tu best.pt!
                         escaneando = false;
                         clearInterval(bucleEscaneo);
                         
-                        // Actualizar textos
                         txtEscaner.innerText = "¡Producto identificado!";
-                        let nombre = data.detecciones[0].producto.replace(/_/g, ' ');
-                        tituloProducto.innerText = nombre;
+                        let labelOriginal = data.detecciones[0].producto;
+                        let nombre = labelOriginal.replace(/_/g, ' ');
                         
-                        // Mostrar Bottom Sheet
+                        // Buscar si existe en catálogo para colocar su emoji e imagen correspondiente
+                        let key = labelOriginal.toLowerCase().replace(/ /g, '_');
+                        let catalogado = catalogoProductos[key];
+                        
+                        tituloProducto.innerText = catalogado ? catalogado.nombre : nombre;
+                        emojiPlaceholder.innerText = catalogado ? catalogado.emoji : '📦';
+                        
+                        // Mostrar Bottom Sheet interactivo
                         bottomSheet.classList.add('show');
                     }
-                }).catch(err => console.log("Esperando servidor..."));
+                }).catch(err => {
+                    console.log("Esperando conexión con Flask en " + API_URL);
+                    txtEscaner.innerText = "Apuntando a la despensa...";
+                });
             }, 'image/jpeg');
         }, 1000);
     }
